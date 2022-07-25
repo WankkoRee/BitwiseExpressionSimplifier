@@ -1,15 +1,30 @@
 # 位运算表达式化简器
 
+## 安装
+
+```shell
+pip install BitwiseExpressionSimplifier
+```
+
+## 更新
+
+```shell
+pip install --upgrade BitwiseExpressionSimplifier
+```
+
 ## 功能特性
 
 ### 基本用法
 
-将**表达式中未知数的名称集合**、**表达式**、**位长度**传入`toNumberOperation`方法，可返回由`NumberOperation`类派生的`NumberExpression`类、`NumberNumber`类 或`NumberKnownNumber`类。
+将**表达式中未知数的名称集合**、**表达式**、**位长度**传入`toNOperation`方法，可返回由`NOperation`类派生的`NExpression`类、`NNumber`类 或`NKnownNumber`类。
 
-`NumberOperation`类有`bitwise`属性，可供查看每位的最简表达式。
+`NOperation`类有`bitwise`属性，可供查看每位的最简表达式。
 
 ```python
-result = toNumberOperation("(y^(x>>2))&0xF0F", 16, {'x', 'y'}).bitwise
+from BitwiseExpressionSimplifier import toNOperation
+
+
+result = toNOperation("(y^(x>>2))&0xF0F", 16, {'x', 'y'}).bitwise
 # result[0] = y[0] ^ x[2]
 # result[1] = y[1] ^ x[3]
 # result[2] = y[2] ^ x[4]
@@ -36,15 +51,16 @@ result = toNumberOperation("(y^(x>>2))&0xF0F", 16, {'x', 'y'}).bitwise
 
 ### 高阶玩法
 
-可以将`NumberOperation`类的实例作为未知数传入新表达式参与化简。
+可以将`NOperation`类的实例作为未知数传入新表达式参与化简。
 
 ```python
-"""
-每字节中，新x高四位为原x高四位，新x低四位为原y高四位，新y高四位为原x低四位，新y低四位为原y低四位
-"""
-base = toNumberOperation("(x^(y>>4))&0xf0f0f0f", 32, {'x', 'y'})
-x = toNumberOperation("x^base", 32, {'x'}, {'base': base}).bitwise
-y = toNumberOperation("y^(base<<4)", 32, {'y'}, {'base': base}).bitwise
+from BitwiseExpressionSimplifier import toNOperation
+
+
+# 每字节中，新x高四位为原x高四位，新x低四位为原y高四位，新y高四位为原x低四位，新y低四位为原y低四位
+base = toNOperation("(x^(y>>4))&0xf0f0f0f", 32, {'x', 'y'})
+x = toNOperation("x^base", 32, {'x'}, {'base': base}).bitwise
+y = toNOperation("y^(base<<4)", 32, {'y'}, {'base': base}).bitwise
 # x[0] = y[4]
 # x[1] = y[5]
 # x[2] = y[6]

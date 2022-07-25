@@ -2,35 +2,116 @@
 
 ## 功能特性
 
+### 基本用法
+
 将**表达式中未知数的名称集合**、**表达式**、**位长度**传入`toNumberOperation`方法，可返回由`NumberOperation`类派生的`NumberExpression`类、`NumberNumber`类 或`NumberKnownNumber`类。
 
 `NumberOperation`类有`bitwise`属性，可供查看每位的最简表达式。
 
 ```python
-result = toNumberOperation({'x', 'y'}, "(y^(x>>2))&0xF0F", 16).bitwise
-# result[0] = 0
-# result[1] = 0
-# result[2] = 0
-# result[3] = 0
-# result[4] = y[4] ^ x[6]
-# result[5] = y[5] ^ x[7]
-# result[6] = y[6] ^ x[8]
-# result[7] = y[7] ^ x[9]
-# result[8] = 0
-# result[9] = 0
-# result[10] = 0
-# result[11] = 0
-# result[12] = y[12] ^ x[14]
-# result[13] = y[13] ^ x[15]
-# result[14] = y[14]
-# result[15] = y[15]
+result = toNumberOperation("(y^(x>>2))&0xF0F", 16, {'x', 'y'}).bitwise
+# result[0] = y[0] ^ x[2]
+# result[1] = y[1] ^ x[3]
+# result[2] = y[2] ^ x[4]
+# result[3] = y[3] ^ x[5]
+# result[4] = 0
+# result[5] = 0
+# result[6] = 0
+# result[7] = 0
+# result[8] = y[8] ^ x[10]
+# result[9] = y[9] ^ x[11]
+# result[10] = y[10] ^ x[12]
+# result[11] = y[11] ^ x[13]
+# result[12] = 0
+# result[13] = 0
+# result[14] = 0
+# result[15] = 0
 ```
 
-表达式中无未知数时，**表达式中未知数的名称集合**请置为`set()`，而不是`{}`。
+表达式中无未知数时，**表达式中未知数的名称集合**请置为`set()`或者不传参，而不是`{}`。
 
 **表达式**支持自动判定运算优先级，支持任意长度的空格填充，支持多层括号的嵌套。
 
 **位长度**为运算时的溢出边界，用于模拟程序中的真实溢出情况，如在`int`环境下，其值应当为`32`。
+
+### 高阶玩法
+
+可以将`NumberOperation`类的实例作为未知数传入新表达式参与化简。
+
+```python
+"""
+每字节中，新x高四位为原x高四位，新x低四位为原y高四位，新y高四位为原x低四位，新y低四位为原y低四位
+"""
+base = toNumberOperation("(x^(y>>4))&0xf0f0f0f", 32, {'x', 'y'})
+x = toNumberOperation("x^base", 32, {'x'}, {'base': base}).bitwise
+y = toNumberOperation("y^(base<<4)", 32, {'y'}, {'base': base}).bitwise
+# x[0] = y[4]
+# x[1] = y[5]
+# x[2] = y[6]
+# x[3] = y[7]
+# x[4] = x[4]
+# x[5] = x[5]
+# x[6] = x[6]
+# x[7] = x[7]
+# x[8] = y[12]
+# x[9] = y[13]
+# x[10] = y[14]
+# x[11] = y[15]
+# x[12] = x[12]
+# x[13] = x[13]
+# x[14] = x[14]
+# x[15] = x[15]
+# x[16] = y[20]
+# x[17] = y[21]
+# x[18] = y[22]
+# x[19] = y[23]
+# x[20] = x[20]
+# x[21] = x[21]
+# x[22] = x[22]
+# x[23] = x[23]
+# x[24] = y[28]
+# x[25] = y[29]
+# x[26] = y[30]
+# x[27] = y[31]
+# x[28] = x[28]
+# x[29] = x[29]
+# x[30] = x[30]
+# x[31] = x[31]
+
+# y[0] = y[0]
+# y[1] = y[1]
+# y[2] = y[2]
+# y[3] = y[3]
+# y[4] = x[0]
+# y[5] = x[1]
+# y[6] = x[2]
+# y[7] = x[3]
+# y[8] = y[8]
+# y[9] = y[9]
+# y[10] = y[10]
+# y[11] = y[11]
+# y[12] = x[8]
+# y[13] = x[9]
+# y[14] = x[10]
+# y[15] = x[11]
+# y[16] = y[16]
+# y[17] = y[17]
+# y[18] = y[18]
+# y[19] = y[19]
+# y[20] = x[16]
+# y[21] = x[17]
+# y[22] = x[18]
+# y[23] = x[19]
+# y[24] = y[24]
+# y[25] = y[25]
+# y[26] = y[26]
+# y[27] = y[27]
+# y[28] = x[24]
+# y[29] = x[25]
+# y[30] = x[26]
+# y[31] = x[27]
+
+```
 
 ## 支持化简的情况
 

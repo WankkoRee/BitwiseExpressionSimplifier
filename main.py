@@ -627,8 +627,12 @@ def list2NumberOperation(expression: list, length: int) -> NumberOperation:
     return expression[0]
 
 
-def toNumberOperation(known_bitwise: set[str], expression: str, length: int = 32):
+def toNumberOperation(expression: str, length: int, known_bitwise: set[str] = None, known_operation: dict[str, NumberOperation] = None):
     exp_arr = []
+    if known_bitwise is None:
+        known_bitwise = set()
+    if known_operation is None:
+        known_operation = {}
     while expression != "":
         if expression[0] == ' ':
             expression = expression[1:]
@@ -670,6 +674,7 @@ def toNumberOperation(known_bitwise: set[str], expression: str, length: int = 32
                 expression = expression[1:]
         else:
             is_known_bitwise = False
+            is_known_operation = False
             for key in known_bitwise:
                 if expression.startswith(key):
                     right = expression[len(key):]
@@ -680,26 +685,43 @@ def toNumberOperation(known_bitwise: set[str], expression: str, length: int = 32
                     is_known_bitwise = True
                     break
             if not is_known_bitwise:
+                for key in known_operation.keys():
+                    if expression.startswith(key):
+                        right = expression[len(key):]
+                        if len(right) > 0 and (right[0].isalpha() or right[0].isdigit() or right[0] == '_'):
+                            continue
+                        assert known_operation[key].length == length
+                        exp_arr.append(known_operation[key])
+                        expression = right
+                        is_known_bitwise = True
+                        break
+            if not is_known_bitwise and not is_known_operation:
                 raise Exception("拆分错误", f"未知的表达式: {expression}")
     return list2NumberOperation(exp_arr, length)
 
 
 if __name__ == '__main__':
-    assert str(toNumberOperation(set(), "1 & ~1 | 1", 1).bitwise[0]) == '1'
-    assert str(toNumberOperation({'x'}, "((((x))))", 1).bitwise[0]) == 'x[0]'
-    assert str(toNumberOperation({'x'}, "1 & x", 1).bitwise[0]) == 'x[0]'
-    assert str(toNumberOperation({'x'}, "x & 1", 1).bitwise[0]) == 'x[0]'
-    assert str(toNumberOperation({'x'}, "0 & x", 1).bitwise[0]) == '0'
-    assert str(toNumberOperation({'x'}, "x & 0", 1).bitwise[0]) == '0'
-    assert str(toNumberOperation({'x', 'y'}, "x & y & x", 1).bitwise[0]) == 'x[0] & y[0]'
-    assert str(toNumberOperation({'x', 'y'}, "x & (y & x)", 1).bitwise[0]) == 'y[0] & x[0]'
-    assert str(toNumberOperation({'x', 'y'}, "(x & y) & (y & x)", 1).bitwise[0]) == 'x[0] & y[0]'
-    assert str(toNumberOperation({'x', 'y', 'z'}, "(x & z & y) & (y & x)", 1).bitwise[0]) == '(x[0] & z[0]) & y[0]'
-    assert str(toNumberOperation({'x'}, "(0 | x & 1) & x", 1).bitwise[0]) == 'x[0]'
-    assert str(toNumberOperation({'x'}, "(1 | x & 0) & x", 1).bitwise[0]) == 'x[0]'
-    assert str(toNumberOperation({'x'}, "x & ~x", 1).bitwise[0]) == '0'
-    assert str(toNumberOperation({'x'}, "x & x", 1).bitwise[0]) == 'x[0]'
-    assert str(toNumberOperation({'x', 'y', 'z'}, "x & y & (~x & y & z)", 1).bitwise[0]) == '0'
-    assert str(toNumberOperation({'x', 'y', 'z'}, "~x & y & z & x", 1).bitwise[0]) == '0'
+    # 验证单位位运算的化简情况
+    assert str(toNumberOperation("1 & ~1 | 1", 1).bitwise[0]) == '1'
+    assert str(toNumberOperation("((((x))))", 1, {'x'}).bitwise[0]) == 'x[0]'
+    assert str(toNumberOperation("1 & x", 1, {'x'}).bitwise[0]) == 'x[0]'
+    assert str(toNumberOperation("x & 1", 1, {'x'}).bitwise[0]) == 'x[0]'
+    assert str(toNumberOperation("0 & x", 1, {'x'}).bitwise[0]) == '0'
+    assert str(toNumberOperation("x & 0", 1, {'x'}).bitwise[0]) == '0'
+    assert str(toNumberOperation("x & y & x", 1, {'x', 'y'}).bitwise[0]) == 'x[0] & y[0]'
+    assert str(toNumberOperation("x & (y & x)", 1, {'x', 'y'}).bitwise[0]) == 'y[0] & x[0]'
+    assert str(toNumberOperation("(x & y) & (y & x)", 1, {'x', 'y'}).bitwise[0]) == 'x[0] & y[0]'
+    assert str(toNumberOperation("(x & z & y) & (y & x)", 1, {'x', 'y', 'z'}).bitwise[0]) == '(x[0] & z[0]) & y[0]'
+    assert str(toNumberOperation("(0 | x & 1) & x", 1, {'x'}).bitwise[0]) == 'x[0]'
+    assert str(toNumberOperation("(1 | x & 0) & x", 1, {'x'}).bitwise[0]) == 'x[0]'
+    assert str(toNumberOperation("x & ~x", 1, {'x'}).bitwise[0]) == '0'
+    assert str(toNumberOperation("x & x", 1, {'x'}).bitwise[0]) == 'x[0]'
+    assert str(toNumberOperation("x & y & (~x & y & z)", 1, {'x', 'y', 'z'}).bitwise[0]) == '0'
+    assert str(toNumberOperation("~x & y & z & x", 1, {'x', 'y', 'z'}).bitwise[0]) == '0'
 
-    # nbop = toNumberOperation({'x', 'y'}, "(y^(x>>4))&0xF0F0F0F", 32)
+    # 每字节中，新x高四位为原x高四位，新x低四位为原y高四位，新y高四位为原x低四位，新y低四位为原y低四位
+    base = toNumberOperation("(x^(y>>4))&0xf0f0f0f", 32, {'x', 'y'})
+    x = toNumberOperation("x^base", 32, {'x'}, {'base': base})
+    y = toNumberOperation("y^(base<<4)", 32, {'y'}, {'base': base})
+    assert ", ".join([str(i) for i in x.bitwise][::-1]) == 'x[31], x[30], x[29], x[28], y[31], y[30], y[29], y[28], x[23], x[22], x[21], x[20], y[23], y[22], y[21], y[20], x[15], x[14], x[13], x[12], y[15], y[14], y[13], y[12], x[7], x[6], x[5], x[4], y[7], y[6], y[5], y[4]'
+    assert ", ".join([str(i) for i in y.bitwise][::-1]) == 'x[27], x[26], x[25], x[24], y[27], y[26], y[25], y[24], x[19], x[18], x[17], x[16], y[19], y[18], y[17], y[16], x[11], x[10], x[9], x[8], y[11], y[10], y[9], y[8], x[3], x[2], x[1], x[0], y[3], y[2], y[1], y[0]'

@@ -10,6 +10,9 @@ class NOperation(object):
         self.length = 0
         self.bitwise: list[BOperation] = []
 
+    def __str__(self) -> str:
+        return "[" + ", ".join(str(i) for i in self.bitwise[::-1]) + "]"
+
     def __repr__(self):
         return self.__str__()
 
@@ -49,11 +52,6 @@ class NExpression(NOperation):
         for i in range(self.length):
             self.bitwise.append(BExpression(left.bitwise[i], operator, right.bitwise[i]).getResult())
 
-    def __str__(self) -> str:
-        return (str(self._left) if type(self._left) is not NExpression else f"({self._left})") \
-               + f" {self._operator} " \
-               + (str(self._right) if type(self._right) is not NExpression else f"({self._right})")
-
     def copy(self):
         rtn = NExpression(self._left, self._operator, self._right, self.length)
         for i in range(self.length):
@@ -78,9 +76,6 @@ class NNumber(NOperation):
             self.bitwise.append(BNumber(0))
             p -= 1
 
-    def __str__(self) -> str:
-        return hex(self._number)
-
     def getNumber(self) -> int:
         return self._number
 
@@ -100,9 +95,6 @@ class NKnownNumber(NOperation):
         # bitwise 存储方式为 [0:length] ，所以下标是正向存储
         for i in range(self.length):
             self.bitwise.append(BKnownNumber(name, i))
-
-    def __str__(self) -> str:
-        return self._name
 
     def copy(self):
         rtn = NKnownNumber(self._name, self.length)

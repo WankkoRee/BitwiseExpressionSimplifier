@@ -503,7 +503,7 @@ class NumberExpression(NumberOperation):
         self._right = right
 
         for i in range(self.length):
-            self.bitwise.insert(0, BitwiseExpression(left.bitwise[i], operator, right.bitwise[i]).getResult())
+            self.bitwise.append(BitwiseExpression(left.bitwise[i], operator, right.bitwise[i]).getResult())
 
     def __str__(self) -> str:
         return (str(self._left) if type(self._left) is not NumberExpression else f"({self._left})") \

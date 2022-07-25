@@ -34,6 +34,9 @@ class NOperation(object):
             self.bitwise.pop(0)  # 低位溢出
             self.bitwise.append(BNumber(0))  # 高位补 0
 
+    def copy(self):
+        raise Exception
+
 
 class NExpression(NOperation):
     def __init__(self, left: NOperation, operator, right: NOperation, length: int):
@@ -50,6 +53,12 @@ class NExpression(NOperation):
         return (str(self._left) if type(self._left) is not NExpression else f"({self._left})") \
                + f" {self._operator} " \
                + (str(self._right) if type(self._right) is not NExpression else f"({self._right})")
+
+    def copy(self):
+        rtn = NExpression(self._left, self._operator, self._right, self.length)
+        for i in range(self.length):
+            rtn.bitwise[i] = self.bitwise[i].copy()
+        return rtn
 
 
 class NNumber(NOperation):
@@ -75,6 +84,12 @@ class NNumber(NOperation):
     def getNumber(self) -> int:
         return self._number
 
+    def copy(self):
+        rtn = NNumber(self._number, self.length)
+        for i in range(self.length):
+            rtn.bitwise[i] = self.bitwise[i].copy()
+        return rtn
+
 
 class NKnownNumber(NOperation):
     def __init__(self, name: str, length: int):
@@ -88,3 +103,9 @@ class NKnownNumber(NOperation):
 
     def __str__(self) -> str:
         return self._name
+
+    def copy(self):
+        rtn = NKnownNumber(self._name, self.length)
+        for i in range(self.length):
+            rtn.bitwise[i] = self.bitwise[i].copy()
+        return rtn

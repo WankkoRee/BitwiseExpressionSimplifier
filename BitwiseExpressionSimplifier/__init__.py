@@ -70,7 +70,7 @@ def toNOperation(expression: str, length: int, known_bitwise: set[str] = None, k
                         if len(right) > 0 and (right[0].isalpha() or right[0].isdigit() or right[0] == '_'):
                             continue
                         assert known_operation[key].length == length
-                        exp_arr.append(known_operation[key])
+                        exp_arr.append(known_operation[key].copy())
                         expression = right
                         is_known_bitwise = True
                         break

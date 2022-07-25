@@ -1,11 +1,15 @@
+import shutil
+
 import setuptools
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+shutil.rmtree("./dist")
+
 setuptools.setup(
     name="BitwiseExpressionSimplifier",
-    version="1.0.0",
+    version="1.0.1",
     author="Wankko Ree",
     author_email="wkr@wkr.moe",
     description="位运算表达式化简器，支持各种你能想到的用法",

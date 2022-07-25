@@ -9,7 +9,7 @@ shutil.rmtree("./dist")
 
 setuptools.setup(
     name="BitwiseExpressionSimplifier",
-    version="1.0.1",
+    version="1.0.2",
     author="Wankko Ree",
     author_email="wkr@wkr.moe",
     description="位运算表达式化简器，支持各种你能想到的用法",

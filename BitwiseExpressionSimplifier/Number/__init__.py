@@ -10,6 +10,9 @@ class NOperation(object):
         self.length = 0
         self.bitwise: list[BOperation] = []
 
+    def __repr__(self):
+        return self.__str__()
+
     def getNumber(self):
         raise Exception
 

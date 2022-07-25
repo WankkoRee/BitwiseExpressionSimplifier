@@ -4,6 +4,9 @@ __all__ = ["BOperation", "BExpression", "BNumber", "BKnownNumber"]
 
 
 class BOperation(object):
+    def __repr__(self):
+        return self.__str__()
+
     def setNegate(self) -> None:
         raise Exception
 

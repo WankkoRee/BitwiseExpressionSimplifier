@@ -19,6 +19,7 @@ if __name__ == '__main__':
     assert str(toNOperation("x & x", 1, {'x'}).bitwise[0]) == 'x[0]'
     assert str(toNOperation("x & y & (~x & y & z)", 1, {'x', 'y', 'z'}).bitwise[0]) == '0'
     assert str(toNOperation("~x & y & z & x", 1, {'x', 'y', 'z'}).bitwise[0]) == '0'
+    assert str(toNOperation("(x ^ y) ^ (y ^ ~x)", 1, {'x', 'y', 'z'}).bitwise[0]) == '1'
 
     # 每字节中，新x高四位为原x高四位，新x低四位为原y高四位，新y高四位为原x低四位，新y低四位为原y低四位
     base = toNOperation("(x^(y>>4))&0xf0f0f0f", 32, {'x', 'y'})

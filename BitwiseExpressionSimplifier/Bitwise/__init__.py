@@ -61,12 +61,8 @@ class BExpression(BOperation):
             elif type(left) is BExpression and type(right) is BExpression:
                 left_set: set[BOperation] = left.getContinuousHashSet(operator)
                 right_set: set[BOperation] = right.getContinuousHashSet(operator)
-                left_negated_set: set[BOperation] = set(i.copy().setNegateL() for i in left_set)
                 right_negated_set: set[BOperation] = set(i.copy().setNegateL() for i in right_set)
                 if len(left_set & right_negated_set) > 0:  # (x & y & ...) & (~y & z & ...) == 0
-                    self._simplified = True
-                    self._simplify = BNumber(0)
-                elif len(left_negated_set & right_set) > 0:  # (x & ~y & ...) & (y & z & ...) == 0
                     self._simplified = True
                     self._simplify = BNumber(0)
                 elif len(left_set & right_set) > 0:  # (x & y & ...) & (y & z & ...) == (x & y & ...) & (z & ...)
@@ -119,12 +115,8 @@ class BExpression(BOperation):
             elif type(left) is BExpression and type(right) is BExpression:
                 left_set: set[BOperation] = left.getContinuousHashSet(operator)
                 right_set: set[BOperation] = right.getContinuousHashSet(operator)
-                left_negated_set: set[BOperation] = set(i.copy().setNegateL() for i in left_set)
                 right_negated_set: set[BOperation] = set(i.copy().setNegateL() for i in right_set)
                 if len(left_set & right_negated_set) > 0:  # (x | y | ...) | (~y | z | ...) == 1
-                    self._simplified = True
-                    self._simplify = BNumber(1)
-                elif len(left_negated_set & right_set) > 0:  # (x | ~y | ...) | (y | z | ...) == 1
                     self._simplified = True
                     self._simplify = BNumber(1)
                 elif len(left_set & right_set) > 0:  # (x | y | ...) | (y | z | ...) == (x | y | ...) | (z | ...)
@@ -179,47 +171,8 @@ class BExpression(BOperation):
             elif type(left) is BExpression and type(right) is BExpression:
                 left_set: set[BOperation] = left.getContinuousHashSet(operator)
                 right_set: set[BOperation] = right.getContinuousHashSet(operator)
-                left_negated_set: set[BOperation] = set(i.copy().setNegateL() for i in left_set)
                 right_negated_set: set[BOperation] = set(i.copy().setNegateL() for i in right_set)
-                if len(left_set & right_negated_set) > 0:  # (x ^ y ^ ...) ^ (~y ^ z ^ ...) == ~((x ^ ...) ^ ( z ^ ...))
-                    for same_operation in left_set & right_negated_set:
-                        if type(self.left) is BExpression and type(self.right) is BExpression:
-                            self.left = self.left.removeContinuousOperation(operator, same_operation)
-                            self.right = self.right.removeContinuousOperation(operator, same_operation.copy().setNegateL())
-                        elif self.left == same_operation and type(self.right) is BExpression:
-                            self._simplified = True
-                            self._simplify = self.right.removeContinuousOperation(operator, same_operation.copy().setNegateL())
-                            self.left = None
-                        elif type(self.left) is BExpression and self.right == same_operation.copy().setNegateL():
-                            self._simplified = True
-                            self._simplify = self.left.removeContinuousOperation(operator, same_operation)
-                            self.right = None
-                        else:
-                            raise Exception
-                    if not self._simplified:
-                        self.setNegate()
-                    else:
-                        self._simplify.setNegate()
-                elif len(left_negated_set & right_set) > 0:  # (x ^ ~y ^ ...) ^ (y ^ z ^ ...) ==  ~((x ^ ...) ^ ( z ^ ...))
-                    for same_operation in left_negated_set & right_set:
-                        if type(self.left) is BExpression and type(self.right) is BExpression:
-                            self.left = self.left.removeContinuousOperation(operator, same_operation.copy().setNegateL())
-                            self.right = self.right.removeContinuousOperation(operator, same_operation)
-                        elif self.left == same_operation.copy().setNegateL() and type(self.right) is BExpression:
-                            self._simplified = True
-                            self._simplify = self.right.removeContinuousOperation(operator, same_operation)
-                            self.left = None
-                        elif type(self.left) is BExpression and self.right == same_operation:
-                            self._simplified = True
-                            self._simplify = self.left.removeContinuousOperation(operator, same_operation.copy().setNegateL())
-                            self.right = None
-                        else:
-                            raise Exception
-                    if not self._simplified:
-                        self.setNegate()
-                    else:
-                        self._simplify.setNegate()
-                elif len(left_set & right_set) > 0:  # (x ^ y ^ ...) ^ (y ^ z ^ ...) == (x ^ ...) ^ (z ^ ...)
+                if len(left_set & right_set) > 0:  # (x ^ y ^ ...) ^ (y ^ z ^ ...) == (x ^ ...) ^ (z ^ ...)
                     for same_operation in left_set & right_set:
                         if type(self.left) is BExpression and type(self.right) is BExpression:
                             self.left = self.left.removeContinuousOperation(operator, same_operation)
@@ -232,8 +185,41 @@ class BExpression(BOperation):
                             self._simplified = True
                             self._simplify = self.left.removeContinuousOperation(operator, same_operation)
                             self.right = None
+                        elif self.left == same_operation and self.right == same_operation:
+                            self._simplified = True
+                            self._simplify = BNumber(0)
+                            self.left = None
+                            self.right = None
                         else:
                             raise Exception
+                if len(left_set & right_negated_set) > 0:  # (x ^ y ^ ...) ^ (~y ^ z ^ ...) == ~((x ^ ...) ^ ( z ^ ...))
+                    assert not self._simplified
+                    times = 0  # 多次消去时记录次数，方便最后取反
+                    for same_operation in left_set & right_negated_set:
+                        times += 1
+                        if type(self.left) is BExpression and type(self.right) is BExpression:
+                            self.left = self.left.removeContinuousOperation(operator, same_operation)
+                            self.right = self.right.removeContinuousOperation(operator, same_operation.copy().setNegateL())
+                        elif self.left == same_operation and type(self.right) is BExpression:
+                            self._simplified = True
+                            self._simplify = self.right.removeContinuousOperation(operator, same_operation.copy().setNegateL())
+                            self.left = None
+                        elif type(self.left) is BExpression and self.right == same_operation.copy().setNegateL():
+                            self._simplified = True
+                            self._simplify = self.left.removeContinuousOperation(operator, same_operation)
+                            self.right = None
+                        elif self.left == same_operation and self.right == same_operation.copy().setNegateL():
+                            self._simplified = True
+                            self._simplify = BNumber(0)  # 后续有取反操作，所以先反向存储结果
+                            self.left = None
+                            self.right = None
+                        else:
+                            raise Exception
+                    if times % 2 == 1:
+                        if not self._simplified:
+                            self.setNegate()
+                        else:
+                            self._simplify.setNegate()
             elif left == right:  # x ^ x == 0
                 self._simplified = True
                 self._simplify = BNumber(0)
@@ -276,47 +262,8 @@ class BExpression(BOperation):
             elif type(left) is BExpression and type(right) is BExpression:
                 left_set: set[BOperation] = left.getContinuousHashSet(operator)
                 right_set: set[BOperation] = right.getContinuousHashSet(operator)
-                left_negated_set: set[BOperation] = set(i.copy().setNegateL() for i in left_set)
                 right_negated_set: set[BOperation] = set(i.copy().setNegateL() for i in right_set)
-                if len(left_set & right_negated_set) > 0:  # (x ⊙ y ⊙ ...) ⊙ (~y ⊙ z ⊙ ...) == ~((x ⊙ ...) ⊙ ( z ⊙ ...))
-                    for same_operation in left_set & right_negated_set:
-                        if type(self.left) is BExpression and type(self.right) is BExpression:
-                            self.left = self.left.removeContinuousOperation(operator, same_operation)
-                            self.right = self.right.removeContinuousOperation(operator, same_operation.copy().setNegateL())
-                        elif self.left == same_operation and type(self.right) is BExpression:
-                            self._simplified = True
-                            self._simplify = self.right.removeContinuousOperation(operator, same_operation.copy().setNegateL())
-                            self.left = None
-                        elif type(self.left) is BExpression and self.right == same_operation.copy().setNegateL():
-                            self._simplified = True
-                            self._simplify = self.left.removeContinuousOperation(operator, same_operation)
-                            self.right = None
-                        else:
-                            raise Exception
-                    if not self._simplified:
-                        self.setNegate()
-                    else:
-                        self._simplify.setNegate()
-                elif len(left_negated_set & right_set) > 0:  # (x ⊙ ~y ⊙ ...) ⊙ (y ⊙ z ⊙ ...) ==  ~((x ⊙ ...) ⊙ ( z ⊙ ...))
-                    for same_operation in left_negated_set & right_set:
-                        if type(self.left) is BExpression and type(self.right) is BExpression:
-                            self.left = self.left.removeContinuousOperation(operator, same_operation.copy().setNegateL())
-                            self.right = self.right.removeContinuousOperation(operator, same_operation)
-                        elif self.left == same_operation.copy().setNegateL() and type(self.right) is BExpression:
-                            self._simplified = True
-                            self._simplify = self.right.removeContinuousOperation(operator, same_operation)
-                            self.left = None
-                        elif type(self.left) is BExpression and self.right == same_operation:
-                            self._simplified = True
-                            self._simplify = self.left.removeContinuousOperation(operator, same_operation.copy().setNegateL())
-                            self.right = None
-                        else:
-                            raise Exception
-                    if not self._simplified:
-                        self.setNegate()
-                    else:
-                        self._simplify.setNegate()
-                elif len(left_set & right_set) > 0:  # (x ⊙ y ⊙ ...) ⊙ (y ⊙ z ⊙ ...) == (x ⊙ ...) ⊙ (z ⊙ ...)
+                if len(left_set & right_set) > 0:  # (x ⊙ y ⊙ ...) ⊙ (y ⊙ z ⊙ ...) == (x ⊙ ...) ⊙ (z ⊙ ...)
                     for same_operation in left_set & right_set:
                         if type(self.left) is BExpression and type(self.right) is BExpression:
                             self.left = self.left.removeContinuousOperation(operator, same_operation)
@@ -329,8 +276,41 @@ class BExpression(BOperation):
                             self._simplified = True
                             self._simplify = self.left.removeContinuousOperation(operator, same_operation)
                             self.right = None
+                        elif self.left == same_operation and self.right == same_operation:
+                            self._simplified = True
+                            self._simplify = BNumber(1)
+                            self.left = None
+                            self.right = None
                         else:
                             raise Exception
+                if len(left_set & right_negated_set) > 0:  # (x ⊙ y ⊙ ...) ⊙ (~y ⊙ z ⊙ ...) == ~((x ⊙ ...) ⊙ ( z ⊙ ...))
+                    assert not self._simplified
+                    times = 0  # 多次消去时记录次数，方便最后取反
+                    for same_operation in left_set & right_negated_set:
+                        times += 1
+                        if type(self.left) is BExpression and type(self.right) is BExpression:
+                            self.left = self.left.removeContinuousOperation(operator, same_operation)
+                            self.right = self.right.removeContinuousOperation(operator, same_operation.copy().setNegateL())
+                        elif self.left == same_operation and type(self.right) is BExpression:
+                            self._simplified = True
+                            self._simplify = self.right.removeContinuousOperation(operator, same_operation.copy().setNegateL())
+                            self.left = None
+                        elif type(self.left) is BExpression and self.right == same_operation.copy().setNegateL():
+                            self._simplified = True
+                            self._simplify = self.left.removeContinuousOperation(operator, same_operation)
+                            self.right = None
+                        elif self.left == same_operation and self.right == same_operation.copy().setNegateL():
+                            self._simplified = True
+                            self._simplify = BNumber(1)  # 后续有取反操作，所以先反向存储结果
+                            self.left = None
+                            self.right = None
+                        else:
+                            raise Exception
+                    if times % 2 == 1:
+                        if not self._simplified:
+                            self.setNegate()
+                        else:
+                            self._simplify.setNegate()
             elif left == right:  # x ⊙ x == 1
                 self._simplified = True
                 self._simplify = BNumber(1)
